@@ -1,0 +1,3 @@
+elasticsearch>=7.0.0
+jsonlines
+pyyaml
