@@ -44,6 +44,13 @@ class ESIngester:
 
         return documents if isinstance(documents, list) else [documents]
 
+def load_config():
+    config_path = os.path.expanduser("~/.es_ingester_config.yaml")
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as config_file:
+            return yaml.safe_load(config_file)
+    return None
+
 def save_config(es_host, username, password):
     config = {
         'es_host': es_host,
@@ -56,9 +63,9 @@ def save_config(es_host, username, password):
 
 def main():
     parser = argparse.ArgumentParser(description='Ingest data into Elasticsearch')
-    parser.add_argument('-es_host', required=True, help='Elasticsearch host URL')
-    parser.add_argument('-username', required=True, help='Elasticsearch username')
-    parser.add_argument('-password', required=True, help='Elasticsearch password')
+    parser.add_argument('-es_host', help='Elasticsearch host URL')
+    parser.add_argument('-username', help='Elasticsearch username')
+    parser.add_argument('-password', help='Elasticsearch password')
     parser.add_argument('-indexname', required=True, help='Index name to use')
     parser.add_argument('-threads', type=int, default=20, help='Number of threads for ingestion')
     parser.add_argument('-json', help='Key for JSON extraction (e.g., "result")')
@@ -66,10 +73,26 @@ def main():
 
     args = parser.parse_args()
 
-    # Save config to YAML file
-    save_config(args.es_host, args.username, args.password)
+    # Load configuration from file if not provided via command line
+    config = load_config()
+    if config:
+        es_host = args.es_host if args.es_host else config.get('es_host')
+        username = args.username if args.username else config.get('username')
+        password = args.password if args.password else config.get('password')
+    else:
+        es_host = args.es_host
+        username = args.username
+        password = args.password
 
-    ingester = ESIngester(args.es_host, args.username, args.password, args.indexname)
+    # Check if credentials are provided
+    if not es_host or not username or not password:
+        print("Error: Elasticsearch host, username, and password must be provided either via command line or config file.")
+        sys.exit(1)
+
+    # Save config to YAML file if not already present
+    save_config(es_host, username, password)
+
+    ingester = ESIngester(es_host, username, password, args.indexname)
 
     # Read from stdin based on the input type specified
     if args.jsonl:
