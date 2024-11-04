@@ -54,13 +54,6 @@ def save_config(es_host, username, password):
     with open(config_path, 'w') as config_file:
         yaml.dump(config, config_file)
 
-def load_config():
-    config_path = os.path.expanduser("~/.es_ingester_config.yaml")
-    if os.path.exists(config_path):
-        with open(config_path, 'r') as config_file:
-            return yaml.safe_load(config_file)
-    return None
-
 def main():
     parser = argparse.ArgumentParser(description='Ingest data into Elasticsearch')
     parser.add_argument('-es_host', required=True, help='Elasticsearch host URL')
@@ -69,6 +62,7 @@ def main():
     parser.add_argument('-indexname', required=True, help='Index name to use')
     parser.add_argument('-threads', type=int, default=20, help='Number of threads for ingestion')
     parser.add_argument('-json', help='Key for JSON extraction (e.g., "result")')
+    parser.add_argument('-jsonl', action='store_true', help='Indicates that stdin contains newline-separated JSON documents')
 
     args = parser.parse_args()
 
@@ -77,13 +71,18 @@ def main():
 
     ingester = ESIngester(args.es_host, args.username, args.password, args.indexname)
 
-    # Read from stdin
-    if args.json is None:
-        with jsonlines.Reader(sys.stdin) as reader:
-            ingester.ingest_jsonl(reader)
-    else:
+    # Read from stdin based on the input type specified
+    if args.jsonl:
+        # Handle newline-separated JSON objects
+        lines = sys.stdin.read().strip().splitlines()
+        ingester.ingest_jsonl(lines)
+    elif args.json:
+        # Handle JSON input
         json_data = json.load(sys.stdin)
         ingester.ingest_json(args.json, json_data)
+    else:
+        print("No input specified. Use -json or -jsonl.")
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

@@ -1,2 +1,0 @@
-[console_scripts]
-es_ingester = es_ingester.core:main
