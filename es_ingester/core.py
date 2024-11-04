@@ -9,13 +9,14 @@ from elasticsearch import Elasticsearch
 import time
 
 class ESIngester:
-    def __init__(self, es_host, username, password, index_name, verbose, parent=None):
+    def __init__(self, es_host, username, password, index_name, verbose, parent=None, flag=None):
         self.es = Elasticsearch([es_host], http_auth=(username, password))
         self.index_name = index_name
         self.verbose = verbose
         self.lock = threading.Lock()
         self.total_documents = 0
         self.parent_data = {}
+        self.flag = flag  # Store the flag for optional keyname output
 
         # Parse the parent flag if provided
         if parent:
@@ -35,6 +36,10 @@ class ESIngester:
             if self.parent_data:
                 doc.update(self.parent_data)
 
+            # Print the specified flag key's value if it exists
+            if self.flag and self.flag in doc:
+                print(f"Key '{self.flag}': {doc[self.flag]}")
+
             self.es.index(index=self.index_name, document=doc)
             if self.verbose:
                 self.print_progress(index + 1, self.total_documents)
@@ -48,6 +53,10 @@ class ESIngester:
             # Add parent data if provided
             if self.parent_data:
                 doc.update(self.parent_data)
+
+            # Print the specified flag key's value if it exists
+            if self.flag and self.flag in doc:
+                print(f"Key '{self.flag}': {doc[self.flag]}")
 
             thread = threading.Thread(target=self.index_document, args=(doc, index))
             threads.append(thread)
@@ -105,6 +114,7 @@ def main():
     parser.add_argument('-jsonl', action='store_true', help='Indicates that stdin contains newline-separated JSON documents')
     parser.add_argument('-verbose', action='store_true', help='Show progress of document ingestion')
     parser.add_argument('-parent', help='Add a key-value pair to each document in the format key:value')
+    parser.add_argument('-flag', help='Specify a key name to print from each document during ingestion')
 
     args = parser.parse_args()
 
@@ -127,8 +137,8 @@ def main():
     # Save config to YAML file if not already present
     save_config(es_host, username, password)
 
-    # Initialize ingester with parent data if provided
-    ingester = ESIngester(es_host, username, password, args.indexname, args.verbose, parent=args.parent)
+    # Initialize ingester with parent data and flag if provided
+    ingester = ESIngester(es_host, username, password, args.indexname, args.verbose, parent=args.parent, flag=args.flag)
 
     # Read from stdin based on the input type specified
     if args.jsonl:
