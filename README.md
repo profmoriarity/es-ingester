@@ -42,6 +42,25 @@ Ingest JSONL data with saved configuration:
 cat data.jsonl | es-ingester -indexname 'my_index' -jsonl
 ```
 
+```
+usage: es_ingester [-h] [-es_host ES_HOST] [-username USERNAME] [-password PASSWORD] -indexname INDEXNAME [-threads THREADS] [-json JSON] [-jsonl] [-verbose] [-parent PARENT] [-print PRINT]
+
+Ingest data into Elasticsearch
+
+options:
+  -h, --help            show this help message and exit
+  -es_host ES_HOST      Elasticsearch host URL
+  -username USERNAME    Elasticsearch username
+  -password PASSWORD    Elasticsearch password
+  -indexname INDEXNAME  Index name to use
+  -threads THREADS      Number of threads for ingestion
+  -json JSON            Key for JSON extraction (e.g., "result")
+  -jsonl                Indicates that stdin contains newline-separated JSON documents
+  -verbose              Show progress of document ingestion
+  -parent PARENT        Add a key-value pair to each document in the format key:value
+  -print PRINT          Specify a key name to print from each document during ingestion
+  ```
+
 ### Specify JSON Key for Nested Arrays
 Extract nested JSON data by specifying a key path:
 
